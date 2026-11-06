@@ -37,6 +37,7 @@ CREATE TABLE IF NOT EXISTS invoices (
     decision          TEXT,              -- AUTO_PAY / HOLD / BLOCK
     reason            TEXT,
     risk_score        REAL,
+    payout_ref        TEXT,              -- our idempotency key sent to PayPal as sender_batch_id
     payout_batch_id   TEXT,
     payout_status     TEXT,              -- PENDING / SUCCESS / FAILED
     paid_at           TEXT,              -- when the payout was sent (for the daily limit)
