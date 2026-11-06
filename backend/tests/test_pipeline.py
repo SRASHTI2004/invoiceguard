@@ -127,7 +127,8 @@ def test_api_upload_list_summary(env):
         assert client.get("/api/summary").json()["total_paid_cents"] == 124000
         assert len(client.get("/api/suppliers").json()) == 19
         assert client.post("/api/invoices/999/approve").status_code == 400
-        assert client.post("/api/demo/run-samples").json()["processed"] == 11  # 12 sample PDFs, the first was already uploaded
+        assert client.post("/api/demo/run-samples").json()["processed"] == 12  # resets first, then loads all 12
+        assert len(client.get("/api/invoices").json()) == 12
         assert client.get("/api/audit").status_code == 200
 
 
@@ -142,3 +143,58 @@ def test_approve_rechecks_at_click_time(env):
         pipeline.approve(conn, held["id"])
     assert payouts == []
     assert conn.execute("SELECT COUNT(*) FROM audit_log WHERE event='approval_refused'").fetchone()[0] == 1
+
+
+def snapshot(conn):
+    rows = conn.execute("SELECT id, filename, status, decision, total_cents FROM invoices ORDER BY id").fetchall()
+    return [tuple(r) for r in rows], pipeline.summary(conn)
+
+
+def test_load_samples_gives_the_same_result_every_time(env):
+    conn, payouts = env
+    with TestClient(app) as client:
+        first = client.post("/api/demo/run-samples").json()
+        a = snapshot(conn)
+        second = client.post("/api/demo/run-samples").json()
+        b = snapshot(conn)
+    assert a == b and first["invoice_ids"] == second["invoice_ids"] == list(range(1, 13))  # ids restart at 1
+    s = second["summary"]
+    assert s["counts"] == {"PAID": 5, "BLOCKED": 6, "HELD": 1}
+    assert s["total_paid_cents"] == 670050 and s["total_held_cents"] == 300000
+    assert len(payouts) == 10  # 5 paid per run; nothing was skipped because of earlier runs
+
+
+def test_leftover_data_cannot_change_the_sample_result(env):
+    conn, payouts = env
+    # Leftovers from earlier runs: a big payment made today (eats the daily limit) and a duplicate invoice number.
+    conn.execute("INSERT INTO invoices (supplier_id, supplier_name, invoice_number, invoice_date, total_cents, "
+                 "status, paid_at) VALUES (1, 'Northwind Office Supplies', 'INV-2026-1041', '2026-10-28', 950000, "
+                 "'PAID', datetime('now'))")
+    conn.commit()
+    with TestClient(app) as client:
+        client.post("/api/demo/run-samples")
+    s = pipeline.summary(conn)
+    assert s["counts"] == {"PAID": 5, "BLOCKED": 6, "HELD": 1} and s["total_paid_cents"] == 670050
+    assert conn.execute("SELECT COUNT(*) FROM invoices").fetchone()[0] == 12
+
+
+def test_reset_keeps_suppliers_pos_and_gemini_cache(env):
+    conn, _ = env
+    run(conn, "inv01_northwind.pdf")
+    n_cache = conn.execute("SELECT COUNT(*) FROM gemini_cache").fetchone()[0]
+    pipeline.reset_demo_data(conn)
+    assert conn.execute("SELECT COUNT(*) FROM invoices").fetchone()[0] == 0
+    assert conn.execute("SELECT COUNT(*) FROM audit_log").fetchone()[0] == 0
+    assert conn.execute("SELECT COUNT(*) FROM suppliers").fetchone()[0] == 19
+    assert conn.execute("SELECT COUNT(*) FROM gemini_cache").fetchone()[0] == n_cache
+
+
+def test_insufficient_funds_holds_the_invoice_with_a_clear_reason(env, monkeypatch):
+    conn, _ = env
+
+    def broke(*a, **k):
+        raise paypal.PayPalError("Payout rejected by PayPal (HTTP 422) INSUFFICIENT_FUNDS: Sender does not have sufficient funds.")
+
+    monkeypatch.setattr(paypal, "send_payout", broke)
+    r = run(conn, "inv01_northwind.pdf")
+    assert r["status"] == "HELD" and "INSUFFICIENT_FUNDS" in r["reason"]

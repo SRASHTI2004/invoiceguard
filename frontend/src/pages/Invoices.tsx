@@ -24,16 +24,16 @@ export default function InvoicesPage({ invoices, reload }: { invoices: Invoice[]
 
   const columns = useMemo<ColDef<Invoice>[]>(
     () => [
-      { field: "id", headerName: "#", width: 70 },
-      { field: "supplier_name", headerName: "Supplier", width: 210, valueFormatter: (p) => p.value ?? "(unreadable)" },
-      { field: "invoice_number", headerName: "Invoice no.", width: 140 },
-      { field: "total_cents", headerName: "Amount", width: 120, valueFormatter: (p) => money(p.value), type: "rightAligned" },
-      { field: "status", headerName: "Status", width: 120, cellRenderer: (p: ICellRendererParams) => badge(p.value) },
-      { field: "decision", headerName: "Decision", width: 120, cellRenderer: (p: ICellRendererParams) => badge(p.value) },
-      { field: "reason", headerName: "Reason", flex: 1, minWidth: 320, wrapText: true, autoHeight: true, tooltipField: "reason" },
+      { field: "id", headerName: "#", width: 60 },
+      { field: "supplier_name", headerName: "Supplier", flex: 1.4, minWidth: 160, tooltipField: "supplier_name", valueFormatter: (p) => p.value ?? "(unreadable)" },
+      { field: "invoice_number", headerName: "Invoice no.", flex: 1, minWidth: 120 },
+      { field: "total_cents", headerName: "Amount", width: 110, valueFormatter: (p) => money(p.value), type: "rightAligned" },
+      { field: "status", headerName: "Status", width: 110, cellRenderer: (p: ICellRendererParams) => badge(p.value) },
+      { field: "decision", headerName: "Decision", width: 115, cellRenderer: (p: ICellRendererParams) => badge(p.value) },
+      { field: "reason", headerName: "Reason (hover for full text)", flex: 2.5, minWidth: 220, cellClass: "reason-cell", tooltipField: "reason" },
       {
         headerName: "Payout",
-        width: 170,
+        width: 215,
         sortable: false,
         cellRenderer: (p: ICellRendererParams<Invoice>) =>
           p.data?.payout_batch_id ? (
@@ -49,7 +49,7 @@ export default function InvoicesPage({ invoices, reload }: { invoices: Invoice[]
             </span>
           ) : null,
       },
-      { field: "risk_score", headerName: "AI risk", width: 100, valueFormatter: (p) => (p.value == null ? "" : p.value.toFixed(2)) },
+      { field: "risk_score", headerName: "AI risk", width: 90, valueFormatter: (p) => (p.value == null ? "" : p.value.toFixed(2)) },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
     []
@@ -78,9 +78,17 @@ export default function InvoicesPage({ invoices, reload }: { invoices: Invoice[]
         </button>
         <button
           disabled={!!busy}
-          onClick={() => run("samples", async () => `Loaded ${(await api.runSamples()).processed} sample invoices.`)}
+          title="Clears all invoices and the audit log, then runs the 12 sample invoices"
+          onClick={() => {
+            if (!window.confirm("This clears all invoices and the audit log, then loads the 12 sample invoices. Continue?")) return;
+            run("samples", async () => {
+              const r = await api.runSamples();
+              const c = r.summary.counts;
+              return `Loaded ${r.processed} sample invoices: ${c.PAID ?? 0} paid, ${c.BLOCKED ?? 0} blocked, ${c.HELD ?? 0} on hold.`;
+            });
+          }}
         >
-          {busy === "samples" ? "Processing…" : "Load sample invoices"}
+          {busy === "samples" ? "Processing…" : "Reset & load sample invoices"}
         </button>
         {message && <span className="message">{message}</span>}
       </div>
@@ -90,6 +98,7 @@ export default function InvoicesPage({ invoices, reload }: { invoices: Invoice[]
           columnDefs={columns}
           defaultColDef={{ sortable: true, filter: true, resizable: true }}
           getRowId={(p) => String(p.data.id)}
+          rowHeight={52}
           domLayout="autoHeight"
           tooltipShowDelay={300}
           overlayNoRowsTemplate="No invoices yet. Upload a PDF or load the sample invoices."

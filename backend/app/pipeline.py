@@ -166,6 +166,15 @@ def refresh_payout(conn, inv_id: int) -> dict:
     return get_invoice(conn, inv_id)
 
 
+def reset_demo_data(conn) -> None:
+    """Wipe invoices and the audit log (keeps suppliers, POs and the Gemini cache) and restart the ids at 1,
+    so the sample run gives the same result every time (no leftover duplicates, daily-limit totals or ids)."""
+    conn.execute("DELETE FROM audit_log")
+    conn.execute("DELETE FROM invoices")
+    conn.execute("DELETE FROM sqlite_sequence WHERE name IN ('invoices', 'audit_log')")
+    conn.commit()
+
+
 def summary(conn) -> dict:
     def total(where):
         return conn.execute(f"SELECT COALESCE(SUM(total_cents),0) FROM invoices WHERE {where}").fetchone()[0]
