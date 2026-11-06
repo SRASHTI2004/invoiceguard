@@ -49,3 +49,6 @@ button.mini { padding: 2px 8px; font-size: 0.78rem; margin-left: 6px; }
 .actions { display: flex; gap: 10px; margin-top: 12px; }
 .empty { color: var(--muted); padding: 24px 0; }
 @media (max-width: 600px) { .app { padding: 12px; } .card-value { font-size: 1.3rem; } }
+.agent-input { width: 100%; font: inherit; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--panel); color: var(--text); margin-bottom: 10px; }
+.steps { padding-left: 20px; } .steps li { margin-bottom: 8px; } .steps code { font-size: 0.85rem; }
+.agent-reply { background: var(--panel); border: 1px solid var(--border); border-left: 5px solid var(--primary); border-radius: 10px; padding: 12px 16px; white-space: pre-wrap; }

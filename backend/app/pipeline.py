@@ -161,3 +161,45 @@ def summary(conn) -> dict:
         "counts": counts,
         "invoice_count": sum(counts.values()),
     }
+
+
+# ---- AP agent support -------------------------------------------------------------------------------------------
+# The agent is only allowed to resolve these SOFT holds (the owner asked for payment in plain words).
+AGENT_ALLOWED_FINDINGS = {"under_po", "no_po"}
+
+
+def agent_refusals(conn, inv: dict) -> list[str]:
+    """Why the agent may NOT pay this invoice (empty list = allowed). Always a fresh re-check, in code.
+
+    The agent can never pay a BLOCKED invoice, never override a limit, and never pay when the AI review was
+    missing or not low risk. Those need the owner's explicit click on the Approvals page.
+    """
+    if inv["status"] != "HELD":
+        return [f"Invoice is {inv['status']}; the agent can only pay invoices that are on hold"]
+    if not inv["supplier_name"] or inv["total_cents"] is None:
+        return ["Invoice could not be read properly; the owner must review it"]
+    fresh = checks.run_checks(conn, {k: inv[k] for k in (
+        "supplier_name", "invoice_number", "invoice_date", "po_number", "total_cents", "payee_email", "line_items")},
+        exclude_id=inv["id"])
+    out = [f.message for f in fresh if f.code not in AGENT_ALLOWED_FINDINGS]
+    if inv["risk_score"] is None or inv["risk_score"] >= decide.AI_HOLD_RISK:
+        out.append("AI review risk is missing or not low; the owner must approve this one")
+    return out
+
+
+def agent_pay(conn, inv_id: int) -> dict:
+    inv = get_invoice(conn, inv_id)
+    if inv is None:
+        return {"paid": False, "refused": ["Invoice not found"]}
+    refusals = agent_refusals(conn, inv)
+    if refusals:
+        audit.log(conn, inv_id, "agent_refused", None, "; ".join(refusals))
+        return {"paid": False, "refused": refusals}
+    audit.log(conn, inv_id, "agent_requested_payment", "APPROVED",
+              "Payment requested by the owner through the AP agent")
+    try:
+        paid = pay_invoice(conn, inv_id, actor="agent")
+    except ActionError as e:
+        return {"paid": False, "refused": [str(e)]}
+    return {"paid": True, "invoice_id": inv_id, "amount": checks.money(paid["total_cents"]),
+            "payout_status": paid["payout_status"]}

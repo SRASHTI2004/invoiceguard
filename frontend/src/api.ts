@@ -44,6 +44,12 @@ export interface AuditRow {
   created_at: string;
 }
 
+export interface AgentStep {
+  tool: string;
+  args: Record<string, unknown>;
+  result: Record<string, unknown>;
+}
+
 export const money = (cents: number | null | undefined) =>
   cents == null ? "" : (cents / 100).toLocaleString("en-US", { style: "currency", currency: "USD" });
 
@@ -76,5 +82,11 @@ export const api = {
   approve: (id: number) => post<Invoice>(`/api/invoices/${id}/approve`),
   reject: (id: number) => post<Invoice>(`/api/invoices/${id}/reject`),
   refreshPayout: (id: number) => post<Invoice>(`/api/invoices/${id}/refresh-payout`),
+  agent: (message: string) =>
+    call<{ reply: string; steps: AgentStep[] }>("/api/agent", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message }),
+    }),
   runSamples: () => post<{ processed: number }>("/api/demo/run-samples"),
 };
