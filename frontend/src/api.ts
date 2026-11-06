@@ -50,6 +50,24 @@ export interface AgentStep {
   result: Record<string, unknown>;
 }
 
+export interface ProposalItem {
+  invoice: { id: number; supplier: string | null; invoice_number: string | null; amount: string | null; amount_cents: number | null; due_date: string | null } | null;
+  reasons: string[];
+  recommended: boolean;
+}
+
+export interface Proposal {
+  recommended: ProposalItem[];
+  not_recommended: ProposalItem[];
+  total_recommended_cents: number;
+}
+
+export interface ConfirmResult {
+  invoice_id: number;
+  paid: boolean;
+  message: string;
+}
+
 export const money = (cents: number | null | undefined) =>
   cents == null ? "" : (cents / 100).toLocaleString("en-US", { style: "currency", currency: "USD" });
 
@@ -83,10 +101,16 @@ export const api = {
   reject: (id: number) => post<Invoice>(`/api/invoices/${id}/reject`),
   refreshPayout: (id: number) => post<Invoice>(`/api/invoices/${id}/refresh-payout`),
   agent: (message: string) =>
-    call<{ reply: string; steps: AgentStep[] }>("/api/agent", {
+    call<{ reply: string; steps: AgentStep[]; proposal: Proposal }>("/api/agent", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ message }),
+    }),
+  confirmProposal: (invoice_ids: number[]) =>
+    call<{ results: ConfirmResult[] }>("/api/agent/confirm", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ invoice_ids }),
     }),
   runSamples: () => post<{ processed: number }>("/api/demo/run-samples"),
 };
