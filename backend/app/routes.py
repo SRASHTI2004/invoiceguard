@@ -88,15 +88,13 @@ def audit_log(invoice_id: int | None = None, conn=Depends(get_conn)):
 
 @router.post("/demo/run-samples")
 def run_samples(conn=Depends(get_conn)):
-    """Demo helper: push the sample PDFs through the firewall (skips ones already uploaded)."""
-    done = {r["file_hash"] for r in conn.execute("SELECT file_hash FROM invoices")}
+    """Demo helper: RESET all invoices and the audit log, then push the sample PDFs through the firewall in order.
+    Always gives the same result (no leftovers from earlier runs)."""
+    pipeline.reset_demo_data(conn)
     processed = []
     for pdf in sorted(SAMPLES_DIR.glob("*.pdf")):
-        data = pdf.read_bytes()
-        if gemini.pdf_hash(data) in done:
-            continue
-        processed.append(pipeline.process_invoice(conn, data, pdf.name)["id"])
-    return {"processed": len(processed), "invoice_ids": processed}
+        processed.append(pipeline.process_invoice(conn, pdf.read_bytes(), pdf.name)["id"])
+    return {"processed": len(processed), "invoice_ids": processed, "summary": pipeline.summary(conn)}
 
 
 class AgentRequest(BaseModel):

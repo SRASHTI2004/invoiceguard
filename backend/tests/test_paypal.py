@@ -68,3 +68,14 @@ def test_get_payout_status():
                                          "items": [{"transaction_status": "SUCCESS"}]})
 
     assert paypal.get_payout_status("B1", client=mock_client(handler)) == "SUCCESS"
+
+
+def test_simulate_mode_makes_no_paypal_call(monkeypatch):
+    monkeypatch.setattr(config, "PAYPAL_MODE", "simulate")
+
+    def handler(req):
+        raise AssertionError("no HTTP call expected in simulate mode")
+
+    res = paypal.send_payout("ref1", "a@b.com", 100, "n", client=mock_client(handler))
+    assert res["batch_id"] == "SIMULATED-ref1" and res["status"] == "PENDING"
+    assert paypal.get_payout_status(res["batch_id"], client=mock_client(handler)) == "SUCCESS"

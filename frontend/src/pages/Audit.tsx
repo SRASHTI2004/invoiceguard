@@ -8,7 +8,7 @@ const columns: ColDef<AuditRow>[] = [
   { field: "invoice_id", headerName: "Invoice #", width: 110 },
   { field: "event", headerName: "Event", width: 160 },
   { field: "decision", headerName: "Decision", width: 130 },
-  { field: "reason", headerName: "Reason", flex: 1, minWidth: 300, wrapText: true, autoHeight: true },
+  { field: "reason", headerName: "Reason (hover for full text)", flex: 1, minWidth: 300, cellClass: "reason-cell", tooltipField: "reason" },
 ];
 
 // `invoices` changes whenever something happens, so the log reloads with it.
@@ -25,6 +25,8 @@ export default function AuditPage({ invoices }: { invoices: Invoice[] }) {
           rowData={rows}
           columnDefs={columns}
           defaultColDef={{ sortable: true, filter: true, resizable: true }}
+          rowHeight={52}
+          tooltipShowDelay={300}
           domLayout="autoHeight"
         />
       </div>

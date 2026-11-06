@@ -21,7 +21,8 @@ app.include_router(routes.router)
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok", "db_empty": db.is_empty(), "secrets_set": config.secrets_status()}
+    return {"status": "ok", "db_empty": db.is_empty(), "secrets_set": config.secrets_status(),
+            "paypal_mode": config.PAYPAL_MODE}
 
 
 # Serve the built React app (frontend/dist) from the same server. Must stay last so /api routes win.

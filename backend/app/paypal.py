@@ -61,6 +61,8 @@ def build_payout_body(batch_ref: str, email: str, amount_cents: int, note: str) 
 def send_payout(batch_ref: str, email: str, amount_cents: int, note: str,
                 client: httpx.Client | None = None) -> dict:
     """Send one payout. Returns {"batch_id": str, "status": PENDING/SUCCESS/FAILED}."""
+    if config.PAYPAL_MODE == "simulate":
+        return {"batch_id": f"SIMULATED-{batch_ref}", "status": "PENDING"}
     c = _client(client)
     r = c.post("/v1/payments/payouts", json=build_payout_body(batch_ref, email, amount_cents, note),
                headers=_headers(client))
@@ -89,6 +91,8 @@ def map_status(batch_status: str | None, items: list[dict]) -> str:
 
 
 def get_payout_status(batch_id: str, client: httpx.Client | None = None) -> str:
+    if config.PAYPAL_MODE == "simulate" or batch_id.startswith("SIMULATED-"):
+        return "SUCCESS"
     c = _client(client)
     r = c.get(f"/v1/payments/payouts/{batch_id}", headers=_headers(client))
     if r.status_code != 200:
