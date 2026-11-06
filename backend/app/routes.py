@@ -103,9 +103,21 @@ class AgentRequest(BaseModel):
     message: str
 
 
+class ConfirmRequest(BaseModel):
+    invoice_ids: list[int]
+
+
+@router.post("/agent/confirm")
+def confirm_agent_proposal(req: ConfirmRequest, conn=Depends(get_conn)):
+    """The owner clicked "Confirm and pay". Each invoice is fully re-checked now, then paid via the approve path."""
+    if not req.invoice_ids or len(req.invoice_ids) > 20:
+        raise HTTPException(400, "Confirm between 1 and 20 invoices")
+    return {"results": [pipeline.confirm_proposal(conn, i) for i in dict.fromkeys(req.invoice_ids)]}
+
+
 @router.post("/agent")
 def run_agent(req: AgentRequest, conn=Depends(get_conn)):
-    """AP agent: e.g. "pay all held invoices due this week". Payments still go through the firewall."""
+    """AP agent: e.g. "pay all held invoices due this week". It returns a proposal; it never pays."""
     if not req.message.strip():
         raise HTTPException(400, "Please type a request")
     try:

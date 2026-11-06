@@ -37,7 +37,7 @@ After a payout the PayPal batch ID and status (PENDING / SUCCESS / FAILED) are s
 - **Invoices**: AG Grid table with status, amount, decision, reason, payout status, AI risk. Upload a PDF or click **Load sample invoices**.
 - **Approvals**: held invoices with the reason, **Approve & pay** / **Reject**.
 - **Suppliers**: approved list and saved payment emails.
-- **AP agent**: type a request such as "pay all held invoices due this week" (see below).
+- **AP agent**: ask in plain English; it proposes, you click **Confirm and pay** (see below).
 - **Audit log**: every decision.
 
 ## Run it locally
@@ -74,17 +74,18 @@ The default is a fallback list (`gemini-3.5-flash, gemini-3.1-flash-lite, gemini
 - Results for the 11 sample PDFs ship in `backend/seed/gemini_cache.json`, so the demo, tests, eval and a fresh deploy need no Gemini calls for them. Only new uploads use quota.
 - On quota / overload errors the client moves to the next model; if all fail, the invoice is held for manual review.
 
-## AP agent (stretch)
-The owner types a request; a Gemini agent uses three tools (`list_invoices`, `run_checks`, `request_payment`). The model only picks tools; the rules are in code (`pipeline.agent_pay`):
-- it can only pay invoices that are **on hold**, never a blocked one;
-- it re-runs the checks fresh and refuses on any hard finding, any per-payment/daily limit, or a missing/non-low AI risk (only the soft "invoice is less than the PO" / "no PO" holds can be cleared by the agent);
-- at most 10 payments and 8 steps per request; everything is audited (`agent_requested_payment` / `agent_refused`).
-Each agent request makes a few Gemini calls (free-tier quota applies). The sample set includes one demo-only partial-delivery invoice (`inv12`, not part of the eval) that lands on hold so the agent and the Approvals page have something to do.
+## AP agent (stretch): the AI can recommend, but only code checks plus a human click can move money
+Type a request such as "pay all held invoices due this week". A Gemini agent uses three tools (`list_invoices`, `run_checks`, `propose_payment`) and returns a **proposal**: which invoices it recommends paying, and which it will not, each with reasons.
+
+- **The agent has no payment tool.** `propose_payment` re-runs the checks and records a recommendation (audit: `agent_proposal`). It never moves money, and the proposal shown in the UI is built from the tool results in code, not from the model's words.
+- **Only your click pays.** The AP agent tab shows the proposal with a **Confirm and pay** button. Clicking it calls `POST /api/agent/confirm`, which re-runs *all* checks at that moment and then pays through the same approve path as the Approvals page (audit: `owner_approved`, `paid`). If anything changed since the proposal (supplier payee email, a limit, a duplicate), that invoice is refused (`agent_confirm_refused`).
+- **Blocked invoices can never be paid.** Only invoices on hold are eligible. The agent only recommends soft holds (invoice below the PO amount, or no PO) with a low AI risk; limits (per-payment $5,000, daily $10,000), hard findings and missing/medium AI review are never recommended. The Approvals page also re-checks for fraud findings at click time.
+- Each agent request makes a few Gemini calls (free-tier quota applies). The sample set includes one demo-only partial-delivery invoice (`inv12`, not part of the eval) that lands on hold so the agent and the Approvals page have something to work on.
 
 ## Tests and evaluation
 ```bash
 cd backend
-.venv\Scripts\python -m pytest -q        # 65 tests: checks, decision logic, pipeline, agent, API, PayPal (mocked), Gemini (mocked)
+.venv\Scripts\python -m pytest -q        # 71 tests: checks, decision logic, pipeline, agent, API, PayPal (mocked), Gemini (mocked)
 .venv\Scripts\python -m eval.run_eval    # runs all sample invoices and reports fraud caught / valid wrongly held
 ```
 Evaluation on the 11 sample invoices (5 valid, 6 fraud: duplicate, inflated amount, changed payee email, hidden prompt injection, urgent "new bank details", unapproved supplier):

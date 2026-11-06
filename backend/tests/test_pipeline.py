@@ -129,3 +129,16 @@ def test_api_upload_list_summary(env):
         assert client.post("/api/invoices/999/approve").status_code == 400
         assert client.post("/api/demo/run-samples").json()["processed"] == 11  # 12 sample PDFs, the first was already uploaded
         assert client.get("/api/audit").status_code == 200
+
+
+def test_approve_rechecks_at_click_time(env):
+    conn, payouts = env
+    conn.execute("DELETE FROM gemini_cache WHERE kind='review'")
+    conn.commit()
+    held = run(conn, "inv02_brightline.pdf")
+    conn.execute("UPDATE suppliers SET payment_email='changed@example.net' WHERE name='Brightline Packaging Co.'")
+    conn.commit()
+    with pytest.raises(pipeline.ActionError, match="checks now fail"):
+        pipeline.approve(conn, held["id"])
+    assert payouts == []
+    assert conn.execute("SELECT COUNT(*) FROM audit_log WHERE event='approval_refused'").fetchone()[0] == 1
