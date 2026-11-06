@@ -4,7 +4,7 @@ from fastapi import FastAPI
 
 from seed.seed import seed_db
 
-from . import config, db
+from . import config, db, routes
 
 
 @asynccontextmanager
@@ -15,6 +15,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="InvoiceGuard", lifespan=lifespan)
+app.include_router(routes.router)
 
 
 @app.get("/api/health")
