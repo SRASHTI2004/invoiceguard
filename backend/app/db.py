@@ -39,6 +39,7 @@ CREATE TABLE IF NOT EXISTS invoices (
     risk_score        REAL,
     payout_batch_id   TEXT,
     payout_status     TEXT,              -- PENDING / SUCCESS / FAILED
+    paid_at           TEXT,              -- when the payout was sent (for the daily limit)
     created_at        TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
