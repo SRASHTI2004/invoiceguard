@@ -1,4 +1,5 @@
 import { useState } from "react";
+import Markdown from "../Markdown";
 import { AgentStep, api, ConfirmResult, money, Proposal, ProposalItem } from "../api";
 
 const EXAMPLES = [
@@ -92,7 +93,11 @@ export default function AgentPage({ reload }: { reload: () => Promise<void> }) {
           ))}
         </ol>
       )}
-      {reply && <div className="agent-reply">{reply}</div>}
+      {reply && (
+        <div className="agent-reply">
+          <Markdown text={reply} />
+        </div>
+      )}
 
       {proposal && (proposal.recommended.length > 0 || proposal.not_recommended.length > 0) && (
         <div className="proposal">
