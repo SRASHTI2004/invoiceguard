@@ -439,5 +439,45 @@
    "signals": [],
    "reasons": []
   }
+ },
+ {
+  "file": "inv12_cedarpine_partial.pdf",
+  "file_hash": "79b13cf3c6531bea6d60410e10129b30dffea722451f4910864523924faf5d84",
+  "kind": "extract",
+  "result": {
+   "due_date": "2026-11-09",
+   "invoice_date": "2026-11-04",
+   "invoice_number": "CP-2026-318",
+   "line_items": [
+    {
+     "description": "Standing desk (first delivery)",
+     "quantity": 4,
+     "unit_price": 600.0
+    },
+    {
+     "description": "Delivery and assembly",
+     "quantity": 1,
+     "unit_price": 600.0
+    }
+   ],
+   "payee_email": "sb-xvs6m53483229@personal.example.com",
+   "po_number": "PO-1010",
+   "supplier_name": "Cedar & Pine Furniture",
+   "total": 3000.0
+  }
+ },
+ {
+  "file": "inv12_cedarpine_partial.pdf",
+  "file_hash": "79b13cf3c6531bea6d60410e10129b30dffea722451f4910864523924faf5d84",
+  "kind": "review",
+  "result": {
+   "risk_score": 0.1,
+   "signals": [
+    "other"
+   ],
+   "reasons": [
+    "The invoice uses a generic personal email address for payment instead of a business-verified account."
+   ]
+  }
  }
 ]

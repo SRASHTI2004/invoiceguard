@@ -5,30 +5,11 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from app import config, db, paypal, pipeline
+from app import paypal, pipeline
 from app.main import app
 from seed.data import INVOICES, SANDBOX_EMAIL
-from seed.seed import seed_db
 
 SAMPLES = Path(__file__).parents[1] / "seed" / "invoices"
-
-
-@pytest.fixture()
-def env(tmp_path, monkeypatch):
-    monkeypatch.setattr(config, "DB_PATH", str(tmp_path / "t.db"))
-    monkeypatch.setattr(config, "GEMINI_API_KEY", "")  # force cache-only
-    seed_db()
-    payouts = []
-
-    def fake_send(ref, email, amount_cents, note, client=None):
-        payouts.append({"ref": ref, "email": email, "cents": amount_cents})
-        return {"batch_id": f"BATCH{len(payouts)}", "status": "PENDING"}
-
-    monkeypatch.setattr(paypal, "send_payout", fake_send)
-    monkeypatch.setattr(paypal, "get_payout_status", lambda batch_id, client=None: "SUCCESS")
-    conn = db.connect()
-    yield conn, payouts
-    conn.close()
 
 
 def run(conn, filename):
@@ -146,5 +127,5 @@ def test_api_upload_list_summary(env):
         assert client.get("/api/summary").json()["total_paid_cents"] == 124000
         assert len(client.get("/api/suppliers").json()) == 19
         assert client.post("/api/invoices/999/approve").status_code == 400
-        assert client.post("/api/demo/run-samples").json()["processed"] == 10  # the first one was already uploaded
+        assert client.post("/api/demo/run-samples").json()["processed"] == 11  # 12 sample PDFs, the first was already uploaded
         assert client.get("/api/audit").status_code == 200

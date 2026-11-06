@@ -23,21 +23,10 @@ def pdf_hash(pdf_bytes: bytes) -> str:
     return hashlib.sha256(pdf_bytes).hexdigest()
 
 
-def generate_json(prompt: str, pdf_bytes: bytes, schema: dict, thinking: bool = False,
-                  client: httpx.Client | None = None) -> dict:
-    """Send the prompt + PDF to Gemini and return the parsed JSON object."""
+def post_generate(body: dict, client: httpx.Client | None = None) -> httpx.Response:
+    """POST to generateContent, trying each model in GEMINI_MODEL in turn. Raises GeminiError if all fail."""
     if not config.GEMINI_API_KEY:
         raise GeminiError("GEMINI_API_KEY is not set in .env")
-    gen_cfg = {"responseMimeType": "application/json", "responseSchema": schema, "temperature": 0}
-    if not thinking:
-        gen_cfg["thinkingConfig"] = {"thinkingBudget": 0}
-    body = {
-        "contents": [{"parts": [
-            {"text": prompt},
-            {"inline_data": {"mime_type": "application/pdf", "data": base64.b64encode(pdf_bytes).decode()}},
-        ]}],
-        "generationConfig": gen_cfg,
-    }
     c = client or httpx.Client(base_url=BASE_URL, timeout=90)
     headers = {"x-goog-api-key": config.GEMINI_API_KEY}
     r = None
@@ -54,6 +43,25 @@ def generate_json(prompt: str, pdf_bytes: bytes, schema: dict, thinking: bool = 
         # 404 (model retired), 429 (quota) or 503 (overloaded): try the next model in the list
     if r is None or r.status_code != 200:
         raise GeminiError(f"Gemini request failed (HTTP {r.status_code if r is not None else 'n/a'})")
+    return r
+
+
+def generate_json(prompt: str, pdf_bytes: bytes, schema: dict, thinking: bool = False,
+                  client: httpx.Client | None = None) -> dict:
+    """Send the prompt + PDF to Gemini and return the parsed JSON object."""
+    if not config.GEMINI_API_KEY:
+        raise GeminiError("GEMINI_API_KEY is not set in .env")
+    gen_cfg = {"responseMimeType": "application/json", "responseSchema": schema, "temperature": 0}
+    if not thinking:
+        gen_cfg["thinkingConfig"] = {"thinkingBudget": 0}
+    body = {
+        "contents": [{"parts": [
+            {"text": prompt},
+            {"inline_data": {"mime_type": "application/pdf", "data": base64.b64encode(pdf_bytes).decode()}},
+        ]}],
+        "generationConfig": gen_cfg,
+    }
+    r = post_generate(body, client)
     try:
         text = r.json()["candidates"][0]["content"]["parts"][0]["text"]
         data = json.loads(text)

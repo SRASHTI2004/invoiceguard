@@ -1,8 +1,9 @@
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from pydantic import BaseModel
 
-from . import db, pipeline
+from . import agent, db, gemini, pipeline
 
 router = APIRouter(prefix="/api")
 MAX_PDF_BYTES = 10 * 1024 * 1024
@@ -89,7 +90,6 @@ def audit_log(invoice_id: int | None = None, conn=Depends(get_conn)):
 def run_samples(conn=Depends(get_conn)):
     """Demo helper: push the sample PDFs through the firewall (skips ones already uploaded)."""
     done = {r["file_hash"] for r in conn.execute("SELECT file_hash FROM invoices")}
-    from . import gemini
     processed = []
     for pdf in sorted(SAMPLES_DIR.glob("*.pdf")):
         data = pdf.read_bytes()
@@ -97,3 +97,18 @@ def run_samples(conn=Depends(get_conn)):
             continue
         processed.append(pipeline.process_invoice(conn, data, pdf.name)["id"])
     return {"processed": len(processed), "invoice_ids": processed}
+
+
+class AgentRequest(BaseModel):
+    message: str
+
+
+@router.post("/agent")
+def run_agent(req: AgentRequest, conn=Depends(get_conn)):
+    """AP agent: e.g. "pay all held invoices due this week". Payments still go through the firewall."""
+    if not req.message.strip():
+        raise HTTPException(400, "Please type a request")
+    try:
+        return agent.run_agent(conn, req.message)
+    except gemini.GeminiError as e:
+        raise HTTPException(503, f"The AI agent is unavailable right now ({e}). Use the Approvals page instead.")

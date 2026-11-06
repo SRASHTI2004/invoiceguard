@@ -8,7 +8,7 @@ from pathlib import Path
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 
-from seed.data import BUYER, INVOICES, SUPPLIERS
+from seed.data import BUYER, DEMO_INVOICES, INVOICES, SUPPLIERS
 
 OUT = Path(__file__).parent / "invoices"
 W, H = A4
@@ -210,8 +210,9 @@ STYLES = dict(classic=style_classic, modern=style_modern, minimal=style_minimal,
 def main(only=None):
     OUT.mkdir(exist_ok=True)
     labels = []
-    for inv in INVOICES:
-        labels.append({k: inv[k] for k in ("file", "supplier", "number", "is_fraud", "expected", "category")})
+    for inv in INVOICES + DEMO_INVOICES:
+        if inv in INVOICES:  # demo-only invoices are not part of the eval labels
+            labels.append({k: inv[k] for k in ("file", "supplier", "number", "is_fraud", "expected", "category")})
         if only and inv["file"] not in only:
             continue
         assert sum(q * u for _, q, u in inv["items"]) == inv["total"], inv["file"]

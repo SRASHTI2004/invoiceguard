@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, Invoice, Summary } from "./api";
+import AgentPage from "./pages/Agent";
 import ApprovalsPage from "./pages/Approvals";
 import AuditPage from "./pages/Audit";
 import InvoicesPage from "./pages/Invoices";
 import SuppliersPage from "./pages/Suppliers";
 import SummaryCards from "./pages/SummaryCards";
 
-type Tab = "invoices" | "approvals" | "suppliers" | "audit";
+type Tab = "invoices" | "approvals" | "agent" | "suppliers" | "audit";
 
 export default function App() {
   const [tab, setTab] = useState<Tab>("invoices");
@@ -33,6 +34,7 @@ export default function App() {
   const tabs: [Tab, string][] = [
     ["invoices", "Invoices"],
     ["approvals", `Approvals${held.length ? ` (${held.length})` : ""}`],
+    ["agent", "AP agent"],
     ["suppliers", "Suppliers"],
     ["audit", "Audit log"],
   ];
@@ -54,6 +56,7 @@ export default function App() {
       {error && <div className="banner error">Could not reach the server: {error}</div>}
       {tab === "invoices" && <InvoicesPage invoices={invoices} reload={reload} />}
       {tab === "approvals" && <ApprovalsPage held={held} reload={reload} />}
+      {tab === "agent" && <AgentPage reload={reload} />}
       {tab === "suppliers" && <SuppliersPage />}
       {tab === "audit" && <AuditPage invoices={invoices} />}
     </div>

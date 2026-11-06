@@ -18,7 +18,7 @@ SUPPLIERS = [
     ("Pinnacle Print & Design", 1, "accounts@pinnacleprint.example.com", "18 Grafton Lane, Galway"),
     ("Orchard Catering Ltd", 1, "finance@orchardcatering.example.com", "Orchard House, Kilkenny"),
     ("BlueRiver Software Licensing", 1, "ar@blueriver.example.com", "Level 5, Georges Quay, Dublin 2"),
-    ("Cedar & Pine Furniture", 1, "sales@cedarpine.example.com", "Mill Road, Tullamore, Offaly"),
+    ("Cedar & Pine Furniture", 1, _PAID, "Mill Road, Tullamore, Offaly"),
     ("Redwood Security Systems", 1, "accounts@redwoodsec.example.com", "27 Bridge Street, Limerick"),
     ("Lumen Electrical Contractors", 1, "office@lumenelectrical.example.com", "5 Park Avenue, Waterford"),
     ("Vantage Marketing Group", 1, "billing@vantagemarketing.example.com", "Suite 12, Digital Hub, Dublin 8"),
@@ -96,4 +96,13 @@ INVOICES = [
          date="2026-11-05", due="2026-11-15", style="modern", accent=(0.15, 0.15, 0.15),
          items=[("Promotional goods (bulk)", 100, 1900)],
          total=190000, is_fraud=True, expected="BLOCK", category="unapproved_supplier"),
+]
+
+# Demo-only sample (NOT in the eval): a genuine partial-delivery invoice, less than its PO, so the firewall HOLDs it
+# for the owner. Gives the dashboard's Approvals page and the AP agent something to work on.
+DEMO_INVOICES = [
+    dict(file="inv12_cedarpine_partial.pdf", supplier="Cedar & Pine Furniture", number="CP-2026-318", po="PO-1010",
+         date="2026-11-04", due="2026-11-09", style="sidebar", accent=(0.45, 0.3, 0.1),
+         items=[("Standing desk (first delivery)", 4, 60000), ("Delivery and assembly", 1, 60000)],
+         total=300000, is_fraud=False, expected="HOLD", category="partial_delivery"),
 ]
