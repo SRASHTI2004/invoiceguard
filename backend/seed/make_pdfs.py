@@ -2,6 +2,7 @@
     python -m seed.make_pdfs
 """
 import json
+import sys
 from pathlib import Path
 
 from reportlab.lib.pagesizes import A4
@@ -206,19 +207,21 @@ STYLES = dict(classic=style_classic, modern=style_modern, minimal=style_minimal,
               sidebar=style_sidebar, statement=style_statement)
 
 
-def main():
+def main(only=None):
     OUT.mkdir(exist_ok=True)
     labels = []
     for inv in INVOICES:
+        labels.append({k: inv[k] for k in ("file", "supplier", "number", "is_fraud", "expected", "category")})
+        if only and inv["file"] not in only:
+            continue
         assert sum(q * u for _, q, u in inv["items"]) == inv["total"], inv["file"]
-        c = canvas.Canvas(str(OUT / inv["file"]), pagesize=A4)
+        c = canvas.Canvas(str(OUT / inv["file"]), pagesize=A4, invariant=1)  # invariant: same bytes every run
         c.setTitle(f"Invoice {inv['number']}")
         STYLES[inv["style"]](c, inv)
         c.save()
-        labels.append({k: inv[k] for k in ("file", "supplier", "number", "is_fraud", "expected", "category")})
     (Path(__file__).parent / "labels.json").write_text(json.dumps(labels, indent=2))
     print(f"wrote {len(INVOICES)} PDFs to {OUT}")
 
 
 if __name__ == "__main__":
-    main()
+    main(only=sys.argv[1:] or None)  # optional: file names to regenerate
