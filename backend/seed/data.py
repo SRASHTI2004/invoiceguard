@@ -27,7 +27,7 @@ SUPPLIERS = [
     ("Meridian Facilities Management", 1, "ap@meridianfm.example.com", "Meridian House, Sligo"),
     ("Ironbridge Steel Works", 1, "invoices@ironbridgesteel.example.com", "Foundry Road, Athlone"),
     ("Quartz Telecom Solutions", 1, "billing@quartztelecom.example.com", "Tower 2, Sandyford Business Park, Dublin 18"),
-    ("Shadowline Trading", 0, "payments@shadowline.example.com", "Unit 99, Unknown Estate (suspended supplier)"),
+    ("Shadowline Trading", 0, "payments@shadowline.example.com", "Unit 99, Harbour Industrial Estate, Dublin 11"),
 ]
 
 # PO numbers are PO-1001.. in supplier order; Shadowline has none.

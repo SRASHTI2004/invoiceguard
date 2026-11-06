@@ -19,3 +19,16 @@ def test_sample_invoices_are_consistent():
         assert sum(q * u for _, q, u in inv["items"]) == inv["total"]
     assert 8 <= len(INVOICES) <= 12
     assert any(i["category"] == "prompt_injection" and i.get("hidden") for i in INVOICES)
+
+
+def test_sample_pdfs_are_pre_cached_so_no_gemini_call_is_needed(tmp_path, monkeypatch):
+    from pathlib import Path
+
+    from app import gemini
+    monkeypatch.setattr(config, "DB_PATH", str(tmp_path / "t.db"))
+    seed_db()
+    with db.connect() as conn:
+        for inv in INVOICES:
+            h = gemini.pdf_hash((Path(__file__).parents[1] / "seed" / "invoices" / inv["file"]).read_bytes())
+            kinds = {r[0] for r in conn.execute("SELECT kind FROM gemini_cache WHERE file_hash = ?", (h,))}
+            assert kinds == {"extract", "review"}, inv["file"]
