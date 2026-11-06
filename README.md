@@ -64,11 +64,11 @@ npm run dev                                                    # http://localhos
 The database (`backend/invoiceguard.db`) is created and seeded automatically with 19 suppliers and 18 purchase orders on first start.
 
 ### PayPal sandbox setup
-1. At developer.paypal.com create a sandbox **Business** account in a country where Payouts is available (**United States**; an Irish account fails with `PAYOUT_NOT_AVAILABLE`) and make sure it has funds.
+1. At developer.paypal.com create a sandbox **Business** account in a country where Payouts is available (**United States**; an Irish account fails with `PAYOUT_NOT_AVAILABLE`) and **give it a balance of at least $20,000 for the demo**. Each full sample run pays $6,700.50 in real sandbox payouts, and you will reset and re-run it several times (balance check: the account's dashboard at sandbox.paypal.com).
 2. Create a sandbox REST app under that account and put its Client ID/Secret in `.env`.
 3. Suppliers we pay in the demo use a sandbox **Personal** account email. Set it in `backend/seed/data.py` (`SANDBOX_EMAIL`) and delete `backend/invoiceguard.db` to re-seed.
 
-**Sandbox funds:** each full sample run makes 5 real sandbox payouts (**$6,700.50**). When the sandbox Business balance runs out, PayPal answers `INSUFFICIENT_FUNDS`; InvoiceGuard then correctly puts those invoices **on hold** with that reason (you will see "Payout failed: ... INSUFFICIENT_FUNDS"). Fix: add money to the sandbox Business account (sandbox.paypal.com > log in as that account > Add money from its sandbox bank), then press **Approve** on the held invoices or reset and reload. For repeated testing without spending sandbox funds set `PAYPAL_MODE=simulate` in `.env` (no PayPal calls; batch IDs start with `SIMULATED-`).
+**Sandbox funds (minimum $20,000 recommended):** each full sample run makes 5 real sandbox payouts (**$6,700.50**). When the sandbox Business balance runs out, PayPal answers `INSUFFICIENT_FUNDS`; InvoiceGuard then correctly puts those invoices **on hold** and shows a friendly message: a banner on every page ("N invoices could not be paid: the PayPal account has insufficient funds ... Add money to the sandbox Business account, then click Approve") and the same text as the reason on each invoice. Nothing is lost; Approve retries the payment. Fix: add money to the sandbox Business account (sandbox.paypal.com > log in as that account > Add money from its sandbox bank), then press **Approve** on the held invoices or reset and reload. For repeated testing without spending sandbox funds set `PAYPAL_MODE=simulate` in `.env` (no PayPal calls; batch IDs start with `SIMULATED-`).
 
 ### Gemini models and quota
 The default is a fallback list (`gemini-3.5-flash, gemini-3.1-flash-lite, gemini-3.8-flash`; set `GEMINI_MODEL` to change). `gemini-2.5-flash` is no longer available to new API keys. The **free tier allows about 20 requests per day per model**, so:
@@ -87,7 +87,7 @@ Type a request such as "pay all held invoices due this week". A Gemini agent use
 ## Tests and evaluation
 ```bash
 cd backend
-.venv\Scripts\python -m pytest -q        # 76 tests: checks, decision logic, pipeline, agent, API, PayPal (mocked), Gemini (mocked)
+.venv\Scripts\python -m pytest -q        # 77 tests: checks, decision logic, pipeline, agent, API, PayPal (mocked), Gemini (mocked)
 .venv\Scripts\python -m eval.run_eval    # runs all sample invoices and reports fraud caught / valid wrongly held
 ```
 Evaluation on the 11 sample invoices (5 valid, 6 fraud: duplicate, inflated amount, changed payee email, hidden prompt injection, urgent "new bank details", unapproved supplier):

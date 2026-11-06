@@ -43,6 +43,7 @@ def test_rejected_payout_raises_without_leaking_secret():
     with pytest.raises(paypal.PayPalError) as e:
         paypal.send_payout("r", "a@b.com", 100, "n", client=mock_client(handler))
     assert "INSUFFICIENT_FUNDS" in str(e.value) and "secret" not in str(e.value)
+    assert e.value.code == "INSUFFICIENT_FUNDS"
 
 
 def test_auth_failure_raises():
