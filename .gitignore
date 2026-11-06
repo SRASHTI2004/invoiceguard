@@ -224,3 +224,6 @@ PROGRESS.md
 
 # Local SQLite database
 *.db
+
+# Node
+node_modules/
