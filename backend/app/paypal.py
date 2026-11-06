@@ -7,7 +7,9 @@ from . import config
 
 
 class PayPalError(Exception):
-    pass
+    def __init__(self, message: str, code: str | None = None):
+        super().__init__(message)
+        self.code = code  # PayPal's error name, e.g. INSUFFICIENT_FUNDS
 
 
 _token = {"value": None, "expires": 0.0}
@@ -67,12 +69,14 @@ def send_payout(batch_ref: str, email: str, amount_cents: int, note: str,
     r = c.post("/v1/payments/payouts", json=build_payout_body(batch_ref, email, amount_cents, note),
                headers=_headers(client))
     if r.status_code not in (200, 201):
+        code = None
         try:
             err = r.json()
+            code = err.get("name")
             detail = f"{err.get('name', '')}: {err.get('message', '')}"
         except ValueError:
             detail = ""
-        raise PayPalError(f"Payout rejected by PayPal (HTTP {r.status_code}) {detail}".strip())
+        raise PayPalError(f"Payout rejected by PayPal (HTTP {r.status_code}) {detail}".strip(), code)
     header = r.json()["batch_header"]
     return {"batch_id": header["payout_batch_id"], "status": map_status(header.get("batch_status"), [])}
 

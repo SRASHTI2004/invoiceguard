@@ -31,6 +31,7 @@ export default function App() {
   }, [reload]);
 
   const held = invoices.filter((i) => i.status === "HELD");
+  const unfunded = held.filter((i) => i.reason?.includes("insufficient funds"));
   const tabs: [Tab, string][] = [
     ["invoices", "Invoices"],
     ["approvals", `Approvals${held.length ? ` (${held.length})` : ""}`],
@@ -54,6 +55,16 @@ export default function App() {
         ))}
       </nav>
       {error && <div className="banner error">Could not reach the server: {error}</div>}
+      {unfunded.length > 0 && (
+        <div className="banner funds" role="alert">
+          <strong>💸 {unfunded.length} invoice{unfunded.length > 1 ? "s" : ""} could not be paid: the PayPal account has insufficient funds.</strong>
+          <div>
+            Nothing is lost and each invoice already passed every check. Add money to the sandbox Business account, then open{" "}
+            <button className="link" onClick={() => setTab("approvals")}>Approvals</button> and click Approve to pay{" "}
+            {unfunded.length > 1 ? "them" : "it"}.
+          </div>
+        </div>
+      )}
       {tab === "invoices" && <InvoicesPage invoices={invoices} reload={reload} />}
       {tab === "approvals" && <ApprovalsPage held={held} reload={reload} />}
       {tab === "agent" && <AgentPage reload={reload} />}

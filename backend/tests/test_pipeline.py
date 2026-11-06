@@ -193,8 +193,24 @@ def test_insufficient_funds_holds_the_invoice_with_a_clear_reason(env, monkeypat
     conn, _ = env
 
     def broke(*a, **k):
-        raise paypal.PayPalError("Payout rejected by PayPal (HTTP 422) INSUFFICIENT_FUNDS: Sender does not have sufficient funds.")
+        raise paypal.PayPalError("Payout rejected by PayPal (HTTP 422) INSUFFICIENT_FUNDS: no funds", "INSUFFICIENT_FUNDS")
 
     monkeypatch.setattr(paypal, "send_payout", broke)
     r = run(conn, "inv01_northwind.pdf")
-    assert r["status"] == "HELD" and "INSUFFICIENT_FUNDS" in r["reason"]
+    assert r["status"] == "HELD" and r["reason"] == pipeline.INSUFFICIENT_FUNDS_MESSAGE
+    assert "insufficient funds" in r["reason"] and "Add money" in r["reason"]
+    audit = conn.execute("SELECT reason, details FROM audit_log WHERE event='payout_failed'").fetchone()
+    assert audit["reason"] == pipeline.INSUFFICIENT_FUNDS_MESSAGE and "INSUFFICIENT_FUNDS" in audit["details"]
+    # after the owner adds funds, Approve works (same invoice, no loss)
+    monkeypatch.setattr(paypal, "send_payout", lambda *a, **k: {"batch_id": "B1", "status": "PENDING"})
+    assert pipeline.approve(conn, r["id"])["status"] == "PAID"
+
+
+def test_other_payout_errors_keep_the_technical_message(env, monkeypatch):
+    conn, _ = env
+
+    def fail(*a, **k):
+        raise paypal.PayPalError("Payout rejected by PayPal (HTTP 400) VALIDATION_ERROR: bad", "VALIDATION_ERROR")
+
+    monkeypatch.setattr(paypal, "send_payout", fail)
+    assert run(conn, "inv01_northwind.pdf")["reason"].startswith("Payout failed: Payout rejected")

@@ -8,6 +8,11 @@ import secrets
 from . import ai_review, audit, checks, decide, extract, gemini, paypal
 
 
+INSUFFICIENT_FUNDS_MESSAGE = (
+    "Payment not sent: the PayPal account has insufficient funds. Add money to the sandbox Business account, "
+    "then click Approve to try again. The invoice passed all checks and nothing was lost.")
+
+
 class ActionError(Exception):
     """A user-facing problem (wrong invoice state, cannot pay, ...)."""
 
@@ -94,9 +99,10 @@ def pay_invoice(conn, inv_id: int, actor: str) -> dict:
         res = paypal.send_payout(ref, supplier["payment_email"], inv["total_cents"],
                                  f"Invoice {inv['invoice_number']} from {supplier['name']}")
     except paypal.PayPalError as e:
-        _back_to_held(conn, inv_id, f"Payout failed: {e}")
-        audit.log(conn, inv_id, "payout_failed", "HOLD", str(e), {"actor": actor})
-        raise ActionError(f"Payout failed: {e}")
+        message = INSUFFICIENT_FUNDS_MESSAGE if e.code == "INSUFFICIENT_FUNDS" else f"Payout failed: {e}"
+        _back_to_held(conn, inv_id, message)
+        audit.log(conn, inv_id, "payout_failed", "HOLD", message, {"actor": actor, "paypal_error": str(e)})
+        raise ActionError(message)
     conn.execute("UPDATE invoices SET status='PAID', payout_batch_id=?, payout_status=?, paid_at=datetime('now') "
                  "WHERE id=?", (res["batch_id"], res["status"], inv_id))
     conn.commit()
