@@ -65,7 +65,7 @@ CREATE TABLE IF NOT EXISTS gemini_cache (
 
 
 def connect() -> sqlite3.Connection:
-    conn = sqlite3.connect(config.DB_PATH)
+    conn = sqlite3.connect(config.DB_PATH, check_same_thread=False)  # one connection per request, may hop threads
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     return conn
