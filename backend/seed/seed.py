@@ -21,10 +21,11 @@ def load_gemini_cache() -> int:
     return len(entries)
 
 
-def seed_db() -> bool:
+def seed_db(use_cached_gemini: bool = True) -> bool:
     """Insert suppliers and POs if the DB is empty. Returns True if it seeded."""
     db.init_db()
-    load_gemini_cache()
+    if use_cached_gemini:
+        load_gemini_cache()
     if not db.is_empty():
         return False
     with db.connect() as conn:
