@@ -3,7 +3,7 @@
 **An AI payments agent that pays supplier invoices through PayPal, with a firewall that stops fraud before any money moves.**
 Built for the PayPal AI Hackathon.
 
-**Live demo: <https://YOUR-SERVICE.onrender.com>** (open it and click **Run the demo**)
+**Live demo: <https://invoiceguard-4b2i.onrender.com>** (open it and click **Run the demo**)
 
 > The demo runs on Render's free plan, so if nobody has used it for a while the server sleeps and **the first load can take about 50 seconds to wake up**. After that it is fast. Data resets whenever it restarts.
 

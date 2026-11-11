@@ -227,3 +227,6 @@ PROGRESS.md
 
 # Node
 node_modules/
+
+# Local Claude Code settings
+.claude/
