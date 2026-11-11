@@ -40,11 +40,14 @@ export default function AgentPage({ reload }: { reload: () => Promise<void> }) {
     setResults(null);
     try {
       const res = await api.agent(text);
+      if (!res.reply && !(res.proposal?.recommended.length || res.proposal?.not_recommended.length)) {
+        setError("The AI agent returned no answer. Gemini may be unavailable or out of quota; try again later or use the Approvals page.");
+      }
       setReply(res.reply);
       setSteps(res.steps);
       setProposal(res.proposal);
     } catch (e) {
-      setError((e as Error).message);
+      setError(`AI agent error: ${(e as Error).message}`);
     }
     setBusy(false);
   };

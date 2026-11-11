@@ -32,7 +32,12 @@ def get_token(client: httpx.Client | None = None) -> str:
     r = c.post("/v1/oauth2/token", data={"grant_type": "client_credentials"},
                auth=(config.PAYPAL_CLIENT_ID, config.PAYPAL_CLIENT_SECRET))
     if r.status_code != 200:
-        raise PayPalError(f"PayPal auth failed (HTTP {r.status_code})")
+        try:
+            name = r.json().get("error")  # e.g. invalid_client
+        except ValueError:
+            name = None
+        suffix = f": {name}" if isinstance(name, str) else ""
+        raise PayPalError(f"PayPal auth failed (HTTP {r.status_code}{suffix})", code=name if isinstance(name, str) else None)
     data = r.json()
     _token["value"] = data["access_token"]
     _token["expires"] = time.time() + int(data.get("expires_in", 300))

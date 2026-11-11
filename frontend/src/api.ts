@@ -74,9 +74,10 @@ export const money = (cents: number | null | undefined) =>
 async function call<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, init);
   if (!res.ok) {
-    let detail = res.statusText;
+    let detail = res.statusText || `HTTP ${res.status}`;
     try {
-      detail = (await res.json()).detail ?? detail;
+      const d = (await res.json()).detail;
+      detail = typeof d === "string" ? d : d ? JSON.stringify(d) : detail;
     } catch {
       /* not JSON */
     }

@@ -122,3 +122,5 @@ def run_agent(req: AgentRequest, conn=Depends(get_conn)):
         return agent.run_agent(conn, req.message)
     except gemini.GeminiError as e:
         raise HTTPException(503, f"The AI agent is unavailable right now ({e}). Use the Approvals page instead.")
+    except Exception as e:  # network errors, timeouts, anything unexpected: still give the UI a readable message
+        raise HTTPException(503, f"The AI agent hit an error ({type(e).__name__}). Use the Approvals page instead.")
