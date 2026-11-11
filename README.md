@@ -3,6 +3,17 @@
 **An AI payments agent that pays supplier invoices through PayPal, with a firewall that stops fraud before any money moves.**
 Built for the PayPal AI Hackathon.
 
+**Live demo: <https://YOUR-SERVICE.onrender.com>** (open it and click **Run the demo**)
+
+> The demo runs on Render's free plan, so if nobody has used it for a while the server sleeps and **the first load can take about 50 seconds to wake up**. After that it is fast. Data resets whenever it restarts.
+
+**Results on the 11-invoice test set:** 6 of 6 fraud cases caught, 0 of 5 valid invoices wrongly held, $12,500.00 of fraudulent payments stopped (details in [Tests and evaluation](#tests-and-evaluation)).
+
+### How AI and PayPal are used
+- **Gemini (AI)** reads each invoice PDF and extracts the fields, then does a second review for scam signals (urgency, "our bank details changed", hidden instructions aimed at an AI). It also powers the AP agent that proposes which held invoices to pay. The AI never moves money: it only returns structured data that plain code validates, and any AI failure puts the invoice on hold.
+- **PayPal Payouts (sandbox)** pays approved invoices, always to the supplier's saved email and never to an email written on the invoice, with an idempotency key so a retry cannot double-pay. Payout status is read back from PayPal and shown in the dashboard.
+- **Plain code decides.** Duplicate, purchase-order, approved-supplier, payee-email and spending-limit checks are deterministic, and only a small pure function or an explicit owner click can lead to a payment.
+
 Upload a supplier invoice (PDF). InvoiceGuard reads it with Gemini, runs it through fraud checks, and then either pays it
 through the PayPal sandbox, holds it for the owner to approve, or blocks it, always with a plain-English reason and an audit log entry.
 

@@ -61,3 +61,27 @@ button.mini { padding: 2px 8px; font-size: 0.78rem; margin-left: 6px; }
 .banner.funds div { margin-top: 4px; }
 button.link { background: none; border: none; padding: 0; color: inherit; text-decoration: underline; cursor: pointer; font: inherit; }
 .md p { margin: 0 0 8px; } .md ul, .md ol { margin: 0 0 8px; padding-left: 22px; } .md li { margin-bottom: 4px; } .md > :last-child { margin-bottom: 0; } .md code { font-size: 0.85em; background: var(--bg); padding: 1px 5px; border-radius: 4px; }
+
+.flow { list-style: none; margin: 0 0 16px; padding: 0; display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; counter-reset: step; }
+.flow li { position: relative; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; font-size: 0.9rem; }
+.flow li:not(:last-child)::after { content: "→"; position: absolute; right: -13px; top: 50%; transform: translateY(-50%); color: var(--muted); z-index: 1; background: var(--bg); line-height: 1; }
+.flow-icon { font-size: 1.3rem; }
+.flow-sub { color: var(--muted); font-size: 0.78rem; }
+.hero { background: var(--panel); border: 1px solid var(--primary); border-radius: 12px; padding: 20px; margin-bottom: 16px; text-align: center; }
+.hero h2 { margin: 0 0 6px; }
+.hero p { margin: 0 auto 14px; max-width: 640px; color: var(--muted); }
+button.big { font-size: 1.1rem; padding: 12px 28px; font-weight: 600; }
+@media (max-width: 760px) {
+  .flow { grid-template-columns: 1fr; gap: 6px; }
+  .flow li { flex-direction: row; align-items: center; gap: 10px; padding: 8px 12px; }
+  .flow li:not(:last-child)::after { display: none; }
+  .flow-sub { margin-left: auto; text-align: right; }
+}
+@media (max-width: 600px) {
+  nav { flex-wrap: nowrap; overflow-x: auto; }
+  .tab { white-space: nowrap; }
+  .toolbar button { flex: 1 1 100%; }
+  header h1 { font-size: 1.35rem; }
+  .actions { flex-wrap: wrap; }
+  .hero { padding: 16px 12px; }
+}
