@@ -84,6 +84,7 @@ export default function InvoicesPage({ invoices, reload }: { invoices: Invoice[]
             run("samples", async () => {
               const r = await api.runSamples();
               const c = r.summary.counts;
+              if (r.throttled) return r.note ?? "Demo data was loaded recently; showing the latest run.";
               return `Loaded ${r.processed} sample invoices: ${c.PAID ?? 0} paid, ${c.BLOCKED ?? 0} blocked, ${c.HELD ?? 0} on hold.`;
             });
           }}

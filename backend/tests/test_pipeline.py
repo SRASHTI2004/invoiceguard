@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from app import paypal, pipeline
+from app import config, paypal, pipeline
 from app.main import app
 from seed.data import INVOICES, SANDBOX_EMAIL
 
@@ -214,3 +214,16 @@ def test_other_payout_errors_keep_the_technical_message(env, monkeypatch):
 
     monkeypatch.setattr(paypal, "send_payout", fail)
     assert run(conn, "inv01_northwind.pdf")["reason"].startswith("Payout failed: Payout rejected")
+
+
+def test_demo_reset_is_rate_limited_and_sends_no_extra_payouts(env, monkeypatch):
+    conn, payouts = env
+    monkeypatch.setattr(config, "DEMO_COOLDOWN_SECONDS", 600)
+    with TestClient(app) as client:
+        first = client.post("/api/demo/run-samples").json()
+        assert first["throttled"] is False and len(payouts) == 5
+        before = snapshot(conn)
+        again = client.post("/api/demo/run-samples").json()
+    assert again["throttled"] is True and "recently" in again["note"]
+    assert len(payouts) == 5 and snapshot(conn) == before  # nothing re-run, data untouched
+    assert again["processed"] == 12 and again["summary"]["counts"] == {"PAID": 5, "BLOCKED": 6, "HELD": 1}

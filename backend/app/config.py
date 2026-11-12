@@ -24,6 +24,9 @@ PAYPAL_CLIENT_SECRET = _secret("PAYPAL_CLIENT_SECRET")
 PAYPAL_MODE = os.getenv("PAYPAL_MODE", "sandbox").lower()
 PAYPAL_BASE_URL = os.getenv("PAYPAL_BASE_URL", "https://api-m.sandbox.paypal.com").strip().rstrip("/")
 
+# The public demo sends real sandbox payouts: the reset/load-samples endpoint may run at most once per cooldown.
+DEMO_COOLDOWN_SECONDS = int(os.getenv("DEMO_COOLDOWN_SECONDS", "600"))  # 10 minutes
+
 DB_PATH = os.getenv("DB_PATH", str(ROOT / "backend" / "invoiceguard.db"))
 
 # Limits are in cents to avoid float rounding problems.

@@ -113,5 +113,5 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ invoice_ids }),
     }),
-  runSamples: () => post<{ processed: number; summary: Summary }>("/api/demo/run-samples"),
+  runSamples: () => post<{ processed: number; summary: Summary; throttled?: boolean; note?: string }>("/api/demo/run-samples"),
 };

@@ -1,6 +1,6 @@
 import pytest
 
-from app import config, db, paypal
+from app import config, db, paypal, routes
 from seed.seed import seed_db
 
 
@@ -8,6 +8,8 @@ from seed.seed import seed_db
 def env(tmp_path, monkeypatch):
     monkeypatch.setattr(config, "DB_PATH", str(tmp_path / "t.db"))
     monkeypatch.setattr(config, "GEMINI_API_KEY", "")  # force cache-only
+    monkeypatch.setattr(config, "DEMO_COOLDOWN_SECONDS", 0)  # tests reset repeatedly; the throttle has its own test
+    routes._demo["last_run"] = None
     seed_db()
     payouts = []
 

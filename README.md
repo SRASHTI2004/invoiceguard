@@ -119,6 +119,8 @@ The repo has a `Dockerfile` (builds the React app, then serves it and the API fr
 3. When asked, set the secrets `GEMINI_API_KEY`, `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET` (they are not in the repo).
 4. Open the service URL and click **Reset & load sample invoices**.
 
+**Demo protection:** the sample run sends real sandbox payouts ($6,700.50 each time), so the reset/load endpoint is rate-limited on the server to **once every 10 minutes** (`DEMO_COOLDOWN_SECONDS`, default 600). A click inside that window sends no payouts and just shows the latest run with the note "Demo data was loaded recently; showing the latest run." Uploads, all checks and real sandbox payouts are unchanged.
+
 Notes: the free plan has no persistent disk, so SQLite is re-created and re-seeded on every start (invoices you upload are lost on restart or after the free instance sleeps). The service has no login, so anyone with the URL can use it. That is fine for a sandbox demo; do not put real credentials or real money behind it.
 
 ## Demo script (2 minutes)

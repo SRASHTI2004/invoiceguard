@@ -1,13 +1,20 @@
+import threading
+import time
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from pydantic import BaseModel
 
-from . import agent, db, gemini, pipeline
+from . import agent, config, db, gemini, pipeline
 
 router = APIRouter(prefix="/api")
 MAX_PDF_BYTES = 10 * 1024 * 1024
 SAMPLES_DIR = Path(__file__).resolve().parents[1] / "seed" / "invoices"
+
+
+_demo = {"last_run": None}  # monotonic time of the last demo run; in memory (a restart also resets the data)
+_demo_lock = threading.Lock()
+DEMO_NOTE = "Demo data was loaded recently; showing the latest run."
 
 
 def get_conn():
@@ -89,12 +96,23 @@ def audit_log(invoice_id: int | None = None, conn=Depends(get_conn)):
 @router.post("/demo/run-samples")
 def run_samples(conn=Depends(get_conn)):
     """Demo helper: RESET all invoices and the audit log, then push the sample PDFs through the firewall in order.
-    Always gives the same result (no leftovers from earlier runs)."""
+    Always gives the same result (no leftovers from earlier runs).
+    Rate-limited (DEMO_COOLDOWN_SECONDS, default 10 minutes) because it sends real sandbox payouts: a repeat call
+    inside the window sends nothing and returns the existing results with a friendly note."""
+    with _demo_lock:  # claim the slot before running so two quick clicks cannot both send payouts
+        last = _demo["last_run"]
+        recent = last is not None and time.monotonic() - last < config.DEMO_COOLDOWN_SECONDS
+        has_data = conn.execute("SELECT COUNT(*) FROM invoices").fetchone()[0] > 0
+        if recent and has_data:
+            ids = [r["id"] for r in conn.execute("SELECT id FROM invoices ORDER BY id")]
+            return {"processed": len(ids), "invoice_ids": ids, "summary": pipeline.summary(conn),
+                    "throttled": True, "note": DEMO_NOTE}
+        _demo["last_run"] = time.monotonic()
     pipeline.reset_demo_data(conn)
     processed = []
     for pdf in sorted(SAMPLES_DIR.glob("*.pdf")):
         processed.append(pipeline.process_invoice(conn, pdf.read_bytes(), pdf.name)["id"])
-    return {"processed": len(processed), "invoice_ids": processed, "summary": pipeline.summary(conn)}
+    return {"processed": len(processed), "invoice_ids": processed, "summary": pipeline.summary(conn), "throttled": False}
 
 
 class AgentRequest(BaseModel):
